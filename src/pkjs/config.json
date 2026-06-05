@@ -1,0 +1,48 @@
+[
+  { "type": "heading", "defaultValue": "PebbleKuma" },
+  {
+    "type": "section",
+    "items": [
+      { "type": "heading", "defaultValue": "Uptime Kuma" },
+      {
+        "type": "input",
+        "messageKey": "BASE_URL",
+        "label": "Base URL",
+        "defaultValue": "",
+        "attributes": { "placeholder": "https://status.company.com", "type": "url" }
+      },
+      {
+        "type": "input",
+        "messageKey": "STATUS_PAGES",
+        "label": "Status-pagina's (komma-gescheiden slugs)",
+        "defaultValue": "",
+        "attributes": { "placeholder": "monitoring,public" }
+      },
+      {
+        "type": "input",
+        "messageKey": "DEFAULT_PAGE",
+        "label": "Standaardpagina (slug)",
+        "defaultValue": "",
+        "attributes": { "placeholder": "monitoring" }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      { "type": "heading", "defaultValue": "Weergave" },
+      {
+        "type": "select",
+        "messageKey": "SORT_BY",
+        "label": "Sorteren op",
+        "defaultValue": "0",
+        "options": [
+          { "label": "Pagina-volgorde", "value": "0" },
+          { "label": "Naam", "value": "1" },
+          { "label": "Status (problemen eerst)", "value": "2" }
+        ]
+      }
+    ]
+  },
+  { "type": "submit", "defaultValue": "Opslaan" }
+]

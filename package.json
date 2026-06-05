@@ -1,0 +1,64 @@
+{
+  "name": "pebblekuma",
+  "author": "MakeAwesomeHappen",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {
+    "pebble-clay": "^1.0.4"
+  },
+  "pebble": {
+    "displayName": "PebbleKuma",
+    "uuid": "03307f53-0d05-4216-bbc0-d22f293b04c9",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "capabilities": [
+      "configurable"
+    ],
+    "targetPlatforms": [
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [
+      "BASE_URL",
+      "STATUS_PAGES",
+      "DEFAULT_PAGE",
+      "SORT_BY",
+      "PAGE_COUNT",
+      "PAGE_NAMES",
+      "ACTIVE_PAGE",
+      "LOAD_STATE",
+      "MON_COUNT",
+      "MON_INDEX",
+      "MON_NAME",
+      "MON_STATUS",
+      "MON_UPTIME",
+      "MON_PING",
+      "MON_PSTATS",
+      "MON_TIME",
+      "MON_TYPE",
+      "MON_MSG",
+      "MON_HB",
+      "REQUEST_PAGE",
+      "REFRESH"
+    ],
+    "resources": {
+      "media": [
+        {
+          "type": "png",
+          "name": "IMG_MENU_ICON",
+          "file": "images/icon_bear.png",
+          "menuIcon": true
+        },
+        { "type": "raw", "name": "IMG_UP",      "file": "icons/ic_up.pdc" },
+        { "type": "raw", "name": "IMG_DOWN",    "file": "icons/ic_down.pdc" },
+        { "type": "raw", "name": "IMG_PENDING", "file": "icons/ic_pending.pdc" },
+        { "type": "raw", "name": "IMG_MAINT",   "file": "icons/ic_maint.pdc" },
+        { "type": "raw", "name": "IMG_CLOUD",   "file": "icons/ic_cloud.pdc" },
+        { "type": "png", "name": "IMG_HR_PULSE", "file": "icons/hr_pulse.png" }
+      ]
+    }
+  }
+}
