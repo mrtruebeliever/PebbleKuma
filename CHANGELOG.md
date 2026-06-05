@@ -4,6 +4,16 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-06-05
+
+### Changed
+- A failed status fetch now shows an error row you can tap to retry, instead of
+  staying on "Loading…".
+
+### Fixed
+- Detail card window is reused across openings rather than being destroyed from
+  within its own unload handler, preventing a potential crash on rapid reopen.
+
 ## [1.1.0] - 2026-06-05
 
 ### Added
