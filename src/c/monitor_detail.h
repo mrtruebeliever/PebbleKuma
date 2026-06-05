@@ -10,3 +10,6 @@ void monitor_detail_reload(void);
 
 // True while the detail window is on top of the stack.
 bool monitor_detail_is_shown(void);
+
+// Destroys the reusable detail window. Call once at app exit.
+void monitor_detail_destroy(void);

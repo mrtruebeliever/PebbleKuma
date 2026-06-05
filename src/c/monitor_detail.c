@@ -395,22 +395,32 @@ static void window_unload(Window *window) {
   s_img_up = s_img_down = s_img_pending = s_img_maint = s_img_cloud = NULL;
   if (s_hr) gbitmap_destroy(s_hr);
   s_hr = NULL;
-  window_destroy(s_window);
-  s_window = NULL;
 }
 
 void monitor_detail_push(int position) {
   s_pos = position;
   s_animating = false;
   s_disp_uptime = 0;   // window_load animates the count-up to the real value
-  s_window = window_create();
+  // Reuse a single detail window across pushes (matches monitor_list's pattern):
+  // load/unload manage the per-push layers and resources, so the window itself is
+  // created once and destroyed at app exit, never from within its own unload.
+  if (!s_window) {
+    s_window = window_create();
+    window_set_click_config_provider(s_window, click_config);
+    window_set_window_handlers(s_window, (WindowHandlers){
+      .load = window_load,
+      .unload = window_unload,
+    });
+  }
   window_set_background_color(s_window, card_bg());
-  window_set_click_config_provider(s_window, click_config);
-  window_set_window_handlers(s_window, (WindowHandlers){
-    .load = window_load,
-    .unload = window_unload,
-  });
   window_stack_push(s_window, true);
+}
+
+void monitor_detail_destroy(void) {
+  if (s_window) {
+    window_destroy(s_window);
+    s_window = NULL;
+  }
 }
 
 void monitor_detail_reload(void) {

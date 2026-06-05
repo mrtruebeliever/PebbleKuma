@@ -237,3 +237,10 @@ void monitor_list_reload(void) {
     menu_layer_reload_data(s_menu);
   }
 }
+
+void monitor_list_destroy(void) {
+  if (s_window) {
+    window_destroy(s_window);
+    s_window = NULL;
+  }
+}

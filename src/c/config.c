@@ -92,10 +92,7 @@ void config_inbox_received(DictionaryIterator *iter, void *context) {
     persist_write_int(PERSIST_SORT_BY, data_sort_by());
   }
   if ((t = dict_find(iter, MESSAGE_KEY_PAGE_NAMES))) {
-    data_set_page_names(t->value->cstring);
-  }
-  if ((t = dict_find(iter, MESSAGE_KEY_PAGE_COUNT))) {
-    data_set_page_count(t->value->int32);
+    data_set_page_names(t->value->cstring);  // page count is derived from this
   }
   if ((t = dict_find(iter, MESSAGE_KEY_ACTIVE_PAGE))) {
     data_set_active_page(t->value->int32);

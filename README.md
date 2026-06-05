@@ -66,7 +66,8 @@ src/c/monitor_list.c   MenuLayer + StatusBarLayer + page ActionMenu
 src/c/monitor_detail.c card deck: pastel background, animated %, heartbeat sweep
 src/pkjs/index.js      Clay + Uptime Kuma fetch/aggregate/stream
 src/pkjs/i18n.js       per-language Clay settings-form builder
-resources/icons/       vector status icons + cloud + HR pulse
+resources/icons/       built status icons (.pdc) + cloud + HR pulse
+                       (.svg files are the design sources, not build inputs)
 resources/images/      bear menu icon (25x25)
 marketing/             app-store icons (80x80, 144x144)
 ```

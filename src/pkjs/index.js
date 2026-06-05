@@ -41,8 +41,7 @@ function sendLoad(state) {
 
 function sendPageList(state, cb, sortBy) {
   var msg = {};
-  msg[keys.PAGE_COUNT] = state.pages.length;
-  msg[keys.PAGE_NAMES] = state.pages.join('\n');
+  msg[keys.PAGE_NAMES] = state.pages.join('\n');  // watch derives the count from this
   msg[keys.ACTIVE_PAGE] = state.activeIndex;
   msg[keys.LANGUAGE] = getLangIdx();
   if (sortBy !== undefined) { msg[keys.SORT_BY] = sortBy; }  // only from Clay

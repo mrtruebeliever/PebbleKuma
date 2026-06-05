@@ -51,9 +51,8 @@ typedef struct {
 
 // --- Status pages ------------------------------------------------------------
 int         data_page_count(void);
-void        data_set_page_count(int n);
 const char *data_page_name(int i);
-// Fills the page-name table from a '\n'-separated string.
+// Fills the page-name table from a '\n'-separated string; sets the page count.
 void        data_set_page_names(const char *joined);
 int         data_active_page(void);
 void        data_set_active_page(int i);

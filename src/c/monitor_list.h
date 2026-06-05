@@ -6,3 +6,6 @@ Window *monitor_list_window(void);
 
 // Rebuilds the menu from the current data and redraws.
 void monitor_list_reload(void);
+
+// Destroys the root window. Call once at app exit.
+void monitor_list_destroy(void);

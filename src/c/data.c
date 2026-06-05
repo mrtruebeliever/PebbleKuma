@@ -15,12 +15,6 @@ static uint8_t s_order[MAX_MONITORS];  // display position -> raw monitor index
 
 int data_page_count(void) { return s_page_count; }
 
-void data_set_page_count(int n) {
-  if (n < 0) n = 0;
-  if (n > MAX_PAGES) n = MAX_PAGES;
-  s_page_count = n;
-}
-
 const char *data_page_name(int i) {
   if (i < 0 || i >= s_page_count) return "";
   return s_page_names[i];
