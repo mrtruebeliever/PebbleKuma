@@ -2,6 +2,7 @@
 #include "monitor_detail.h"
 #include "data.h"
 #include "config.h"
+#include "i18n.h"
 
 static Window         *s_window = NULL;
 static MenuLayer      *s_menu = NULL;
@@ -47,13 +48,13 @@ static void open_options_menu(void) {
   ActionMenuLevel *root = action_menu_level_create(1 + (pages > 0 ? pages : 0));
 
   ActionMenuLevel *sort = action_menu_level_create(SORT_COUNT);
-  action_menu_level_add_action(sort, "Pagina-volgorde", sort_action_performed,
+  action_menu_level_add_action(sort, i18n(STR_AM_PAGEORDER), sort_action_performed,
                                (void *)(uintptr_t)SORT_PAGE);
-  action_menu_level_add_action(sort, "Naam", sort_action_performed,
+  action_menu_level_add_action(sort, i18n(STR_AM_NAME), sort_action_performed,
                                (void *)(uintptr_t)SORT_NAME);
-  action_menu_level_add_action(sort, "Status (problemen eerst)", sort_action_performed,
+  action_menu_level_add_action(sort, i18n(STR_AM_STATUS), sort_action_performed,
                                (void *)(uintptr_t)SORT_STATUS);
-  action_menu_level_add_child(root, sort, "Sorteren");
+  action_menu_level_add_child(root, sort, i18n(STR_MENU_SORT_TITLE));
 
   for (int i = 0; i < pages; i++) {
     action_menu_level_add_action(root, data_page_name(i),
@@ -92,15 +93,14 @@ static void draw_page_row(GContext *ctx, const Layer *cell) {
 
   const char *page = data_page_count() > 0 ? data_page_name(data_active_page()) : "-";
   char title[PAGE_NAME_LEN + 16];
-  snprintf(title, sizeof(title), "Pagina: %s", page);
+  snprintf(title, sizeof(title), i18n(STR_PAGE_FMT), page);
 
   graphics_context_set_text_color(ctx, title_c);
   graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
                      GRect(8, 0, b.size.w - 12, 28),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  static const char *const kSortLabel[SORT_COUNT] = { "pagina-volgorde", "naam", "status" };
-  char sub[40];
-  snprintf(sub, sizeof(sub), "Menu · sortering: %s", kSortLabel[data_sort_by()]);
+  char sub[48];
+  snprintf(sub, sizeof(sub), i18n(STR_MENU_SORT_FMT), i18n(STR_SORT_PAGE + data_sort_by()));
   graphics_context_set_text_color(ctx, sub_c);
   graphics_draw_text(ctx, sub,
                      fonts_get_system_font(FONT_KEY_GOTHIC_14),
@@ -114,10 +114,10 @@ static void draw_status_row(GContext *ctx, const Layer *cell) {
   bool hl = menu_cell_layer_is_highlighted(cell);
   const char *title, *sub;
   switch (data_load_state()) {
-    case LOAD_LOADING:      title = "Laden…";          sub = "Even geduld";              break;
-    case LOAD_ERROR:        title = "Geen verbinding"; sub = "Check VPN/netwerk · Select"; break;
-    case LOAD_UNCONFIGURED: title = "Niet ingesteld";  sub = "Stel in via de telefoon";   break;
-    default:                title = "Geen monitors";   sub = "";                          break;
+    case LOAD_LOADING:      title = i18n(STR_LOADING_T); sub = i18n(STR_LOADING_S); break;
+    case LOAD_ERROR:        title = i18n(STR_ERROR_T);   sub = i18n(STR_ERROR_S);   break;
+    case LOAD_UNCONFIGURED: title = i18n(STR_UNCONF_T);  sub = i18n(STR_UNCONF_S);  break;
+    default:                title = i18n(STR_EMPTY_T);   sub = "";                  break;
   }
   graphics_context_set_text_color(ctx, GColorBlack);
   graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),

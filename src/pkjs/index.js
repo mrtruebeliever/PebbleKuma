@@ -1,7 +1,11 @@
 var Clay = require('pebble-clay');
-var clayConfig = require('./config.json');
-var clay = new Clay(clayConfig);
+var i18n = require('./i18n');
 var keys = require('message_keys');
+
+// The settings page is rebuilt in the chosen language each time it opens, so we
+// drive Clay manually (autoHandleEvents:false).
+function getLangIdx() { return parseInt(localStorage.getItem('LANG') || '0', 10) || 0; }
+var clay = new Clay(i18n.buildConfig(getLangIdx()), null, { autoHandleEvents: false });
 
 // Load states (mirror data.h).
 var LOAD_LOADING = 0;
@@ -40,6 +44,7 @@ function sendPageList(state, cb, sortBy) {
   msg[keys.PAGE_COUNT] = state.pages.length;
   msg[keys.PAGE_NAMES] = state.pages.join('\n');
   msg[keys.ACTIVE_PAGE] = state.activeIndex;
+  msg[keys.LANGUAGE] = getLangIdx();
   if (sortBy !== undefined) { msg[keys.SORT_BY] = sortBy; }  // only from Clay
   Pebble.sendAppMessage(msg, cb, function () { console.log('pagelist send failed'); });
 }
@@ -158,6 +163,12 @@ Pebble.addEventListener('ready', function () {
   sendPageList(state, function () { loadPage(state, state.activeIndex); });
 });
 
+// Rebuild the settings page in the currently-selected language, then open it.
+Pebble.addEventListener('showConfiguration', function () {
+  clay = new Clay(i18n.buildConfig(getLangIdx()), null, { autoHandleEvents: false });
+  Pebble.openURL(clay.generateUrl());
+});
+
 // Watch -> phone: page switch or manual refresh.
 Pebble.addEventListener('appmessage', function (e) {
   var d = e.payload || {};
@@ -177,6 +188,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
   var pagesRaw = (s[keys.STATUS_PAGES] || '').toString();
   var def = (s[keys.DEFAULT_PAGE] || '').toString().trim();
   var sortBy = parseInt(s[keys.SORT_BY], 10) || 0;
+  var langIdx = parseInt(s[keys.LANGUAGE], 10) || 0;
 
   var pages = pagesRaw.split(',').map(function (x) { return x.trim(); })
     .filter(function (x) { return x.length; }).slice(0, MAX_PAGES);
@@ -187,6 +199,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
   localStorage.setItem('BASE_URL', baseUrl);
   localStorage.setItem('PAGES', JSON.stringify(pages));
   localStorage.setItem('ACTIVE', String(activeIndex));
+  localStorage.setItem('LANG', String(langIdx));
 
   var state = getState();
   sendPageList(state, function () { loadPage(state, state.activeIndex); }, sortBy);

@@ -1,6 +1,7 @@
 #include "monitor_detail.h"
 #include "data.h"
 #include "config.h"
+#include "i18n.h"
 
 // Card layers (cards-example pattern): a short fixed status band holding the
 // status icon, and a sliding content area. On paging, the content text and the
@@ -23,6 +24,11 @@ static int        s_disp_uptime = 0;   // currently displayed uptime, x100
 static int        s_num_from = 0;
 static int        s_num_to = 0;
 static Animation *s_num_anim = NULL;
+
+// Heartbeat bars sweep in left-to-right; s_hb_fill is the 0..ANIMATION_NORMALIZED_MAX
+// progress of that fill (left at max when no animation is running, so bars show full).
+static int        s_hb_fill = ANIMATION_NORMALIZED_MAX;
+static Animation *s_hb_anim = NULL;
 
 static GDrawCommandImage *s_img_up, *s_img_down, *s_img_pending, *s_img_maint, *s_img_cloud;
 static GBitmap *s_hr;   // HR pulse icon shown before the heartbeat bars
@@ -84,6 +90,30 @@ static void start_uptime_anim(int to) {
   animation_set_duration(s_num_anim, 350);
   animation_set_curve(s_num_anim, AnimationCurveEaseOut);
   animation_schedule(s_num_anim);
+}
+
+// Heartbeat fill sweep.
+static void hb_anim_update(Animation *anim, AnimationProgress progress) {
+  s_hb_fill = progress;
+  if (s_content_layer) { layer_mark_dirty(s_content_layer); }
+}
+
+static const AnimationImplementation s_hb_impl = {
+  .update = hb_anim_update,
+};
+
+static void start_hb_anim(void) {
+  if (s_hb_anim) {
+    animation_unschedule(s_hb_anim);
+    animation_destroy(s_hb_anim);
+    s_hb_anim = NULL;
+  }
+  s_hb_fill = 0;
+  s_hb_anim = animation_create();
+  animation_set_implementation(s_hb_anim, &s_hb_impl);
+  animation_set_duration(s_hb_anim, 450);
+  animation_set_curve(s_hb_anim, AnimationCurveEaseOut);
+  animation_schedule(s_hb_anim);
 }
 
 static GDrawCommandImage *icon_for(uint8_t status) {
@@ -204,7 +234,7 @@ static void content_update(Layer *layer, GContext *ctx) {
   } else if (m->type[0]) {
     snprintf(line, sizeof(line), "%s", m->type);
   } else if (m->last_time[0]) {
-    snprintf(line, sizeof(line), "Laatst: %s", m->last_time);
+    snprintf(line, sizeof(line), i18n(STR_LAST_FMT), m->last_time);
   } else {
     line[0] = '\0';
   }
@@ -234,14 +264,22 @@ static void content_update(Layer *layer, GContext *ctx) {
                                 bars.size.w + 4, bars.size.h + 4), 3, GCornersAll);
   int slot = bars.size.w / MAX_HB;
   if (slot < 2) slot = 2;
+  // Sweep front position in milli-bar units (0 .. hb_len*1000), driven by s_hb_fill.
+  long front = (long)(((int64_t)s_hb_fill * m->hb_len * 1000) / ANIMATION_NORMALIZED_MAX);
   for (int i = 0; i < m->hb_len; i++) {
+    long local = front - (long)i * 1000;   // how far this bar has filled, 0..1000
+    if (local <= 0) { continue; }
+    if (local > 1000) { local = 1000; }
+    int bh = (int)((long)bars.size.h * local / 1000);
+    if (bh < 1) { bh = 1; }
     graphics_context_set_fill_color(ctx, status_color(m->hb[i]));
-    graphics_fill_rect(ctx, GRect(bars.origin.x + i * slot, bars.origin.y,
-                                  slot - 1, bars.size.h), 0, GCornerNone);
+    graphics_fill_rect(ctx, GRect(bars.origin.x + i * slot,
+                                  bars.origin.y + bars.size.h - bh,  // grow from the bottom
+                                  slot - 1, bh), 0, GCornerNone);
   }
   if (m->hb_len == 0) {
     graphics_context_set_text_color(ctx, GColorLightGray);
-    graphics_draw_text(ctx, "(geen data)", f14, bars,
+    graphics_draw_text(ctx, i18n(STR_NODATA), f14, bars,
                        GTextOverflowModeFill, GTextAlignmentLeft, NULL);
   }
 }
@@ -253,6 +291,7 @@ static void swap_card(Animation *anim, bool finished, void *context) {
   Monitor *m = data_monitor_at(s_pos);
   window_set_background_color(s_window, card_bg());   // recolor the card to the new status
   start_uptime_anim(m ? m->uptime_x100 : UPTIME_UNKNOWN);  // count the % to the new card
+  start_hb_anim();                                    // re-sweep the heartbeats
   layer_mark_dirty(s_band_layer);
   layer_mark_dirty(s_icon_layer);
   layer_mark_dirty(s_content_layer);
@@ -327,9 +366,10 @@ static void window_load(Window *window) {
   layer_set_update_proc(s_content_layer, content_update);
   layer_add_child(root, s_content_layer);
 
-  // Count the uptime % up from 0 on entry.
+  // Count the uptime % up from 0 and sweep the heartbeats in, on entry.
   Monitor *m = data_monitor_at(s_pos);
   start_uptime_anim(m ? m->uptime_x100 : UPTIME_UNKNOWN);
+  start_hb_anim();
 }
 
 static void window_unload(Window *window) {
@@ -337,6 +377,11 @@ static void window_unload(Window *window) {
     animation_unschedule(s_num_anim);
     animation_destroy(s_num_anim);
     s_num_anim = NULL;
+  }
+  if (s_hb_anim) {
+    animation_unschedule(s_hb_anim);
+    animation_destroy(s_hb_anim);
+    s_hb_anim = NULL;
   }
   layer_destroy(s_band_layer);
   layer_destroy(s_icon_layer);

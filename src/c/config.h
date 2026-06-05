@@ -3,12 +3,16 @@
 
 // Persist storage keys.
 #define PERSIST_SORT_BY      2
+#define PERSIST_LANG         3
 
 // Fixed brand accent color (#5cdd8b) — no longer user-configurable.
 #define DEFAULT_ACCENT_COLOR 0x5cdd8b
 
 // Returns the fixed accent color.
 GColor config_accent(void);
+
+// Returns the current UI language index (Lang enum from i18n.h).
+int config_lang(void);
 
 // Loads the accent color from persist storage (or default).
 void config_load(void);

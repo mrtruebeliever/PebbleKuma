@@ -1,9 +1,13 @@
 #include "config.h"
 #include "data.h"
+#include "i18n.h"
 
 static void (*s_change_cb)(void) = NULL;
+static int s_lang = LANG_NL;
 
 GColor config_accent(void) { return GColorFromHEX(DEFAULT_ACCENT_COLOR); }
+
+int config_lang(void) { return s_lang; }
 
 void config_set_change_callback(void (*cb)(void)) { s_change_cb = cb; }
 
@@ -13,6 +17,11 @@ void config_load(void) {
     sort_by = persist_read_int(PERSIST_SORT_BY);
   }
   data_set_sort_by(sort_by);
+
+  if (persist_exists(PERSIST_LANG)) {
+    s_lang = persist_read_int(PERSIST_LANG);
+    if (s_lang < 0 || s_lang >= LANG_COUNT) { s_lang = LANG_NL; }
+  }
 }
 
 void config_set_sort_by(int sort_by) {
@@ -73,6 +82,11 @@ static void apply_monitor(DictionaryIterator *iter) {
 void config_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *t;
 
+  if ((t = dict_find(iter, MESSAGE_KEY_LANGUAGE))) {
+    s_lang = t->value->int32;
+    if (s_lang < 0 || s_lang >= LANG_COUNT) { s_lang = LANG_NL; }
+    persist_write_int(PERSIST_LANG, s_lang);
+  }
   if ((t = dict_find(iter, MESSAGE_KEY_SORT_BY))) {
     data_set_sort_by(t->value->int32);
     persist_write_int(PERSIST_SORT_BY, data_sort_by());
