@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include "config.h"
 #include "data.h"
+#include "i18n.h"
 #include "monitor_list.h"
 #include "monitor_detail.h"
 
@@ -31,12 +32,10 @@ static void init(void) {
   config_load();
   data_set_load_state(LOAD_LOADING);
   config_set_change_callback(on_data_changed);
-
   app_message_register_inbox_received(config_inbox_received);
   app_message_register_inbox_dropped(inbox_dropped);
   app_message_register_outbox_failed(outbox_failed);
   app_message_open(2048, 256);
-
   window_stack_push(monitor_list_window(), true);
 }
 
