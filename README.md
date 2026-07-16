@@ -53,7 +53,11 @@ one message at a time (throttled per ACK so the inbox buffer never overflows).
 pebble clean && pebble build          # clean is required after resource changes
 pebble install --emulator emery       # install on the emery emulator
 pebble install --cloudpebble          # install to a real PT2 via Dev Connect
+python3 tools/release.py              # size-optimized build/PebbleKuma-release.pbw for the store
 ```
+
+`tools/release.py` writes a size-optimized `.pbw` for the appstore (minifies the JS bundle and
+drops the source map, roughly halving the download; needs `node`/`npx`).
 
 ## Project layout
 
