@@ -60,6 +60,10 @@ void        data_set_active_page(int i);
 // --- Monitors of the active page --------------------------------------------
 int      data_load_state(void);
 void     data_set_load_state(int s);
+
+// Called when a load has sat in LOAD_LOADING too long and has been dropped to
+// LOAD_ERROR; the app registers its redraw here.
+void     data_set_stall_callback(void (*cb)(void));
 int      data_monitor_count(void);
 void     data_set_monitor_count(int n);   // clamps to MAX_MONITORS
 void     data_clear_monitors(void);

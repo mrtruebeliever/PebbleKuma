@@ -4,7 +4,12 @@ var keys = require('message_keys');
 
 // The settings page is rebuilt in the chosen language each time it opens, so we
 // drive Clay manually (autoHandleEvents:false).
-function getLangIdx() { return parseInt(localStorage.getItem('LANG') || '0', 10) || 0; }
+// Defaults to i18n.LANG_AUTO so an unconfigured watch follows its own locale
+// rather than being pinned to whichever language happens to sit at index 0.
+function getLangIdx() {
+  var v = parseInt(localStorage.getItem('LANG'), 10);
+  return isNaN(v) ? i18n.LANG_AUTO : v;
+}
 var clay = new Clay(i18n.buildConfig(getLangIdx()), null, { autoHandleEvents: false });
 
 // Load states (mirror data.h).

@@ -224,8 +224,8 @@ static void content_update(Layer *layer, GContext *ctx) {
     snprintf(line, sizeof(line), "Ping %d ms", m->ping);
   }
   int px = 6 + cloud.w + 10;
-  graphics_context_set_text_color(ctx, GColorDarkGray);
-  graphics_draw_text(ctx, line, f18, GRect(px, 40, w - px - 6, 44),
+  graphics_context_set_text_color(ctx, ink);
+  graphics_draw_text(ctx, line, f18, GRect(px, 40, w - px - 6, 48),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
   // Type + last-checked.
@@ -239,13 +239,16 @@ static void content_update(Layer *layer, GContext *ctx) {
     line[0] = '\0';
   }
   if (line[0]) {
-    graphics_draw_text(ctx, line, f14, GRect(6, 82, w - 12, 18),
+    graphics_draw_text(ctx, line, f14, GRect(6, 96, w - 12, 18),
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
   // Last message (only when the monitor reports one).
   if (m->msg[0]) {
-    graphics_context_set_text_color(ctx, status_color(m->status));
+    // Black, not status_color(): the card ground is that same status's pastel,
+    // so red-on-melon measured 1.3:1 and cobalt-on-celeste worse -- and this
+    // line is the reason a monitor is down, the most important string here.
+    graphics_context_set_text_color(ctx, GColorBlack);
     graphics_draw_text(ctx, m->msg, f14, GRect(6, 102, w - 12, 32),
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }

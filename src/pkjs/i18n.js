@@ -1,6 +1,8 @@
 // Settings-page translations + Clay config builder. Language index matches the
-// watch side: 0 = Nederlands, 1 = English, 2 = Deutsch, 3 = Français.
-var LANGS = ['nl', 'en', 'de', 'fr'];
+// watch side (src/c/i18n.h): 0 = English, 1 = Nederlands, 2 = Français,
+// 3 = Deutsch, 4 = Español. 255 = follow the watch's own locale.
+var LANGS = ['en', 'nl', 'fr', 'de', 'es'];
+var LANG_AUTO = 255;
 
 var L = {
   nl: {
@@ -50,11 +52,23 @@ var L = {
     sort_name: 'Nom',
     sort_status: "Statut (problèmes d'abord)",
     save: 'Enregistrer'
+  },
+  es: {
+    base_url: 'URL base',
+    status_pages: 'Páginas de estado (slugs separados por comas)',
+    default_page: 'Página por defecto (slug)',
+    display: 'Pantalla',
+    language: 'Idioma',
+    sort_by: 'Ordenar por',
+    sort_page: 'Orden de páginas',
+    sort_name: 'Nombre',
+    sort_status: 'Estado (fallos primero)',
+    save: 'Guardar'
   }
 };
 
 function buildConfig(langIdx) {
-  var s = L[LANGS[langIdx] || 'nl'];
+  var s = L[LANGS[langIdx] || 'en'];
   return [
     { type: 'heading', defaultValue: 'PebbleKuma' },
     { type: 'section', items: [
@@ -70,10 +84,12 @@ function buildConfig(langIdx) {
       { type: 'heading', defaultValue: s.display },
       { type: 'select', messageKey: 'LANGUAGE', label: s.language, defaultValue: String(langIdx),
         options: [
-          { label: 'Nederlands', value: '0' },
-          { label: 'English', value: '1' },
-          { label: 'Deutsch', value: '2' },
-          { label: 'Français', value: '3' }
+          { label: 'Automatic (watch language)', value: String(LANG_AUTO) },
+          { label: 'English', value: '0' },
+          { label: 'Nederlands', value: '1' },
+          { label: 'Français', value: '2' },
+          { label: 'Deutsch', value: '3' },
+          { label: 'Español', value: '4' }
         ] },
       { type: 'select', messageKey: 'SORT_BY', label: s.sort_by, defaultValue: '0',
         options: [
@@ -86,4 +102,4 @@ function buildConfig(langIdx) {
   ];
 }
 
-module.exports = { LANGS: LANGS, buildConfig: buildConfig };
+module.exports = { LANGS: LANGS, LANG_AUTO: LANG_AUTO, buildConfig: buildConfig };

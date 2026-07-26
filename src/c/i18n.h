@@ -1,13 +1,19 @@
 #pragma once
 
 // UI languages. Index must match the phone-side LANGS array in pkjs/i18n.js.
+// English is index 0 and the fallback: a user whose watch is set to a language
+// this app does not carry gets English, not Dutch.
 typedef enum {
-  LANG_NL = 0,
-  LANG_EN,
-  LANG_DE,
-  LANG_FR,
+  LANG_EN = 0,
+  LANG_NL = 1,
+  LANG_FR = 2,
+  LANG_DE = 3,
+  LANG_ES = 4,
   LANG_COUNT,
 } Lang;
+
+// Sentinel stored/sent for "follow the watch's system locale" (see config.c).
+#define LANG_AUTO 255
 
 // Translatable strings. Entries marked "(fmt)" carry a printf placeholder.
 typedef enum {

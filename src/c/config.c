@@ -3,7 +3,44 @@
 #include "i18n.h"
 
 static void (*s_change_cb)(void) = NULL;
-static int s_lang = LANG_NL;
+static int s_lang = LANG_EN;   // until config_load() resolves the locale
+
+// Decode an integer tuple by its actual type and width. The real phone app
+// packs integers at their smallest width (a 1 arrives as a 1-byte tuple), so
+// reading value->int32 blindly picks up neighbouring dict bytes; the emulator
+// always sends 4 bytes and never shows the bug. Clay may also send strings.
+static int32_t tuple_int(const Tuple *t) {
+  switch (t->type) {
+    case TUPLE_CSTRING: return (int32_t)atoi(t->value->cstring);
+    case TUPLE_INT:  if (t->length == 1) return t->value->int8;
+                     if (t->length == 2) return t->value->int16;
+                     return t->value->int32;
+    case TUPLE_UINT: if (t->length == 1) return t->value->uint8;
+                     if (t->length == 2) return t->value->uint16;
+                     return (int32_t)t->value->uint32;
+    default: return 0;
+  }
+}
+
+// Maps the watch's system locale (e.g. "en_US", "nl_NL") to a UI language.
+// Anything this app does not carry falls back to English.
+static int detect_locale_lang(void) {
+  const char *loc = i18n_get_system_locale();
+  if (loc && loc[0] && loc[1]) {
+    if (loc[0] == 'n' && loc[1] == 'l') return LANG_NL;
+    if (loc[0] == 'f' && loc[1] == 'r') return LANG_FR;
+    if (loc[0] == 'd' && loc[1] == 'e') return LANG_DE;
+    if (loc[0] == 'e' && loc[1] == 's') return LANG_ES;
+  }
+  return LANG_EN;
+}
+
+// LANG_AUTO means "follow the watch"; a real index means the user picked one.
+static int resolve_lang(int stored) {
+  if (stored == LANG_AUTO) return detect_locale_lang();
+  if (stored < 0 || stored >= LANG_COUNT) return detect_locale_lang();
+  return stored;
+}
 
 GColor config_accent(void) { return GColorFromHEX(DEFAULT_ACCENT_COLOR); }
 
@@ -18,10 +55,10 @@ void config_load(void) {
   }
   data_set_sort_by(sort_by);
 
-  if (persist_exists(PERSIST_LANG)) {
-    s_lang = persist_read_int(PERSIST_LANG);
-    if (s_lang < 0 || s_lang >= LANG_COUNT) { s_lang = LANG_NL; }
-  }
+  // No stored preference means follow the watch's own locale rather than
+  // defaulting everyone to one language.
+  s_lang = resolve_lang(persist_exists(PERSIST_LANG) ? persist_read_int(PERSIST_LANG)
+                                                     : LANG_AUTO);
 }
 
 void config_set_sort_by(int sort_by) {
@@ -33,7 +70,7 @@ void config_set_sort_by(int sort_by) {
 static void apply_monitor(DictionaryIterator *iter) {
   Tuple *t_idx = dict_find(iter, MESSAGE_KEY_MON_INDEX);
   if (!t_idx) return;
-  int idx = t_idx->value->int32;
+  int idx = tuple_int(t_idx);
   Monitor *m = data_monitor(idx);
   if (!m) return;
 
@@ -47,11 +84,11 @@ static void apply_monitor(DictionaryIterator *iter) {
     strncpy(m->name, t->value->cstring, MON_NAME_LEN - 1);
     m->name[MON_NAME_LEN - 1] = '\0';
   }
-  m->status = (t = dict_find(iter, MESSAGE_KEY_MON_STATUS)) ? (uint8_t)t->value->int32
+  m->status = (t = dict_find(iter, MESSAGE_KEY_MON_STATUS)) ? (uint8_t)tuple_int(t)
                                                             : STATUS_UNKNOWN;
-  m->uptime_x100 = (t = dict_find(iter, MESSAGE_KEY_MON_UPTIME)) ? (uint16_t)t->value->int32
+  m->uptime_x100 = (t = dict_find(iter, MESSAGE_KEY_MON_UPTIME)) ? (uint16_t)tuple_int(t)
                                                                  : UPTIME_UNKNOWN;
-  m->ping = (t = dict_find(iter, MESSAGE_KEY_MON_PING)) ? (int16_t)t->value->int32
+  m->ping = (t = dict_find(iter, MESSAGE_KEY_MON_PING)) ? (int16_t)tuple_int(t)
                                                         : PING_UNKNOWN;
   if ((t = dict_find(iter, MESSAGE_KEY_MON_PSTATS))) {
     strncpy(m->pstats, t->value->cstring, MON_PSTATS_LEN - 1);
@@ -83,22 +120,22 @@ void config_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *t;
 
   if ((t = dict_find(iter, MESSAGE_KEY_LANGUAGE))) {
-    s_lang = t->value->int32;
-    if (s_lang < 0 || s_lang >= LANG_COUNT) { s_lang = LANG_NL; }
-    persist_write_int(PERSIST_LANG, s_lang);
+    int picked = tuple_int(t);
+    s_lang = resolve_lang(picked);
+    persist_write_int(PERSIST_LANG, picked);   // keep AUTO as AUTO
   }
   if ((t = dict_find(iter, MESSAGE_KEY_SORT_BY))) {
-    data_set_sort_by(t->value->int32);
+    data_set_sort_by(tuple_int(t));
     persist_write_int(PERSIST_SORT_BY, data_sort_by());
   }
   if ((t = dict_find(iter, MESSAGE_KEY_PAGE_NAMES))) {
     data_set_page_names(t->value->cstring);  // page count is derived from this
   }
   if ((t = dict_find(iter, MESSAGE_KEY_ACTIVE_PAGE))) {
-    data_set_active_page(t->value->int32);
+    data_set_active_page(tuple_int(t));
   }
   if ((t = dict_find(iter, MESSAGE_KEY_LOAD_STATE))) {
-    int state = t->value->int32;
+    int state = tuple_int(t);
     data_set_load_state(state);
     if (state == LOAD_LOADING) {
       data_clear_monitors();

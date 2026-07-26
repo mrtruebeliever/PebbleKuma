@@ -9,7 +9,7 @@ static const char *const S[LANG_COUNT][STR_COUNT] = {
     [STR_SORT_PAGE]       = "pagina-volgorde",
     [STR_SORT_NAME]       = "naam",
     [STR_SORT_STATUS]     = "status",
-    [STR_LOADING_T]       = "Laden…",
+    [STR_LOADING_T]       = "Laden...",
     [STR_LOADING_S]       = "Even geduld",
     [STR_ERROR_T]         = "Geen verbinding",
     [STR_ERROR_S]         = "Check VPN/netwerk · Select",
@@ -29,7 +29,7 @@ static const char *const S[LANG_COUNT][STR_COUNT] = {
     [STR_SORT_PAGE]       = "page order",
     [STR_SORT_NAME]       = "name",
     [STR_SORT_STATUS]     = "status",
-    [STR_LOADING_T]       = "Loading…",
+    [STR_LOADING_T]       = "Loading...",
     [STR_LOADING_S]       = "Please wait",
     [STR_ERROR_T]         = "No connection",
     [STR_ERROR_S]         = "Check VPN/network · Select",
@@ -49,7 +49,7 @@ static const char *const S[LANG_COUNT][STR_COUNT] = {
     [STR_SORT_PAGE]       = "Seitenfolge",
     [STR_SORT_NAME]       = "Name",
     [STR_SORT_STATUS]     = "Status",
-    [STR_LOADING_T]       = "Laden…",
+    [STR_LOADING_T]       = "Laden...",
     [STR_LOADING_S]       = "Bitte warten",
     [STR_ERROR_T]         = "Keine Verbindung",
     [STR_ERROR_S]         = "VPN/Netzwerk prüfen · Select",
@@ -69,7 +69,7 @@ static const char *const S[LANG_COUNT][STR_COUNT] = {
     [STR_SORT_PAGE]       = "ordre",
     [STR_SORT_NAME]       = "nom",
     [STR_SORT_STATUS]     = "statut",
-    [STR_LOADING_T]       = "Chargement…",
+    [STR_LOADING_T]       = "Chargement...",
     [STR_LOADING_S]       = "Veuillez patienter",
     [STR_ERROR_T]         = "Pas de connexion",
     [STR_ERROR_S]         = "Vérifiez VPN/réseau · Select",
@@ -83,11 +83,31 @@ static const char *const S[LANG_COUNT][STR_COUNT] = {
     [STR_LAST_FMT]        = "Dernier : %s",
     [STR_NODATA]          = "(pas de données)",
   },
+  [LANG_ES] = {
+    [STR_PAGE_FMT]        = "Página: %s",
+    [STR_MENU_SORT_FMT]   = "Menú · orden: %s",
+    [STR_SORT_PAGE]       = "orden de página",
+    [STR_SORT_NAME]       = "nombre",
+    [STR_SORT_STATUS]     = "estado",
+    [STR_LOADING_T]       = "Cargando...",
+    [STR_LOADING_S]       = "Un momento",
+    [STR_ERROR_T]         = "Sin conexión",
+    [STR_ERROR_S]         = "Revisa VPN/red · Select",
+    [STR_UNCONF_T]        = "Sin configurar",
+    [STR_UNCONF_S]        = "Configura en el móvil",
+    [STR_EMPTY_T]         = "Sin monitores",
+    [STR_MENU_SORT_TITLE] = "Ordenar",
+    [STR_AM_PAGEORDER]    = "Orden de páginas",
+    [STR_AM_NAME]         = "Nombre",
+    [STR_AM_STATUS]       = "Estado (fallos primero)",
+    [STR_LAST_FMT]        = "Último: %s",
+    [STR_NODATA]          = "(sin datos)",
+  },
 };
 
 const char *i18n(StrId id) {
   int lang = config_lang();
-  if (lang < 0 || lang >= LANG_COUNT) { lang = LANG_NL; }
+  if (lang < 0 || lang >= LANG_COUNT) { lang = LANG_EN; }
   if (id >= STR_COUNT) { return ""; }
   const char *s = S[lang][id];
   return s ? s : (S[LANG_EN][id] ? S[LANG_EN][id] : "");

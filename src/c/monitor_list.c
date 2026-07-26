@@ -61,6 +61,11 @@ static void open_options_menu(void) {
                                  page_action_performed, (void *)(uintptr_t)i);
   }
 
+  // These two do not mean what they look like they mean, so do not "fix" them:
+  // verified on the emulator by setting .foreground to red, .background colours
+  // the narrow rail down the left edge and .foreground colours only the small
+  // crumb dot on it. The sheet itself is always black with white focused and
+  // grey unfocused item text, and that is not configurable through this API.
   ActionMenuConfig config = {
     .root_level = root,
     .colors = {
@@ -175,7 +180,10 @@ static void select_click(MenuLayer *ml, MenuIndex *ci, void *ctx) {
   }
   if (data_load_state() == LOAD_OK && data_monitor_count() > 0) {
     monitor_detail_push(ci->row - 1);  // display position; deck pages from here
-  } else if (data_load_state() == LOAD_ERROR) {
+  } else if (data_load_state() == LOAD_ERROR || data_load_state() == LOAD_LOADING) {
+    // Retrying from the loading row too: if the phone swallowed the first
+    // request, pressing the only row on screen should re-issue it rather than
+    // do nothing.
     data_set_load_state(LOAD_LOADING);
     config_request_refresh();
     monitor_list_reload();

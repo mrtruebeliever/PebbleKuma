@@ -30,6 +30,7 @@ static void outbox_failed(DictionaryIterator *iter, AppMessageResult reason,
 
 static void init(void) {
   config_load();
+  data_set_stall_callback(on_data_changed);
   data_set_load_state(LOAD_LOADING);
   config_set_change_callback(on_data_changed);
   app_message_register_inbox_received(config_inbox_received);
