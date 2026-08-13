@@ -28,8 +28,18 @@ static void outbox_failed(DictionaryIterator *iter, AppMessageResult reason,
   on_data_changed();
 }
 
+// Subscribing powers the touch sensor on and is the one touch path that works on
+// firmware 4.33.1; the system navigation bridge crashes the app (see below).
+// Events go to the window on top.
+static void touch_dispatch(const TouchEvent *event, void *context) {
+  if (monitor_detail_is_top())    { monitor_detail_handle_touch(event); }
+  else if (monitor_list_is_top()) { monitor_list_handle_touch(event); }
+}
+
 static void init(void) {
-  app_touch_navigation_enable(true);   // opt in to system touch nav on the menu
+  // No app_touch_navigation_enable() here: on firmware 4.33.1 the system touch
+  // bridge faults inside firmware on the first touch and kills the app. Buttons
+  // only until a later firmware fixes it.
   config_load();
   data_set_stall_callback(on_data_changed);
   data_set_load_state(LOAD_LOADING);
@@ -39,6 +49,7 @@ static void init(void) {
   app_message_register_outbox_failed(outbox_failed);
   app_message_open(2048, 256);
   window_stack_push(monitor_list_window(), true);
+  touch_service_subscribe(touch_dispatch, NULL);
 }
 
 static void deinit(void) {

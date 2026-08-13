@@ -1,4 +1,5 @@
 #include "monitor_list.h"
+#include "touch_nav.h"
 #include "monitor_detail.h"
 #include "data.h"
 #include "config.h"
@@ -252,6 +253,50 @@ static void select_long_click(MenuLayer *ml, MenuIndex *ci, void *ctx) {
   open_options_menu();
 }
 
+// --- Touch -------------------------------------------------------------------
+//
+// The system touch bridge (app_touch_navigation_enable) faults inside firmware
+// on 4.33.1, so touch is handled here from the raw event stream — see touch_nav.h.
+
+// Keeps the selection on a visible row after a drag or glide: SELECT would
+// otherwise act on a row that scrolled out of sight, and the next UP/DOWN would
+// yank the list back. The middle row is where button navigation puts it anyway.
+static void touch_settled(void) {
+  if (!s_menu) { return; }
+  GRect frame = layer_get_frame(menu_layer_get_layer(s_menu));
+  int row = touch_nav_row_at(s_menu, GPoint(frame.size.w / 2, frame.origin.y + frame.size.h / 2),
+                             get_num_rows(s_menu, 0, NULL), get_cell_height);
+  if (row >= 0) {
+    menu_layer_set_selected_index(s_menu, MenuIndex(0, (uint16_t)row), MenuRowAlignNone, false);
+    // MenuRowAlignNone does not scroll, and without a scroll the menu never
+    // repaints — the highlight would stay invisible until the next button press.
+    layer_mark_dirty(menu_layer_get_layer(s_menu));
+  }
+}
+
+bool monitor_list_is_top(void) {
+  return s_window && window_stack_get_top_window() == s_window;
+}
+
+void monitor_list_handle_touch(const TouchEvent *event) {
+  if (!s_menu) { return; }
+  GPoint point;
+  switch (touch_nav_feed(menu_layer_get_scroll_layer(s_menu), event, &point)) {
+    case TOUCH_NAV_TAP: {
+      int row = touch_nav_row_at(s_menu, point, get_num_rows(s_menu, 0, NULL), get_cell_height);
+      if (row < 0) { return; }   // the header bar, or past the last row
+      MenuIndex index = MenuIndex(0, (uint16_t)row);
+      menu_layer_set_selected_index(s_menu, index, MenuRowAlignNone, false);
+      select_click(s_menu, &index, NULL);
+      break;
+    }
+    case TOUCH_NAV_BACK:
+      window_stack_pop(true);   // root window, so this leaves the app — same as BACK
+    default:
+      break;
+  }
+}
+
 // --- Window ------------------------------------------------------------------
 
 static void window_load(Window *window) {
@@ -277,9 +322,12 @@ static void window_load(Window *window) {
   menu_layer_set_highlight_colors(s_menu, config_accent(), GColorBlack);
   menu_layer_set_click_config_onto_window(s_menu, window);
   layer_add_child(root, menu_layer_get_layer(s_menu));
+
+  window_set_touch_bridge_disabled(window, true);
 }
 
 static void window_unload(Window *window) {
+  touch_nav_reset();
   menu_layer_destroy(s_menu);
   s_menu = NULL;
   tick_timer_service_unsubscribe();
@@ -289,6 +337,9 @@ static void window_unload(Window *window) {
   s_header_icon = NULL;
 }
 
+static void window_appear(Window *window)    { touch_nav_set_settled_handler(touch_settled); }
+static void window_disappear(Window *window) { touch_nav_reset(); }
+
 Window *monitor_list_window(void) {
   if (!s_window) {
     s_window = window_create();
@@ -296,6 +347,8 @@ Window *monitor_list_window(void) {
     window_set_window_handlers(s_window, (WindowHandlers){
       .load = window_load,
       .unload = window_unload,
+      .appear = window_appear,
+      .disappear = window_disappear,
     });
   }
   return s_window;

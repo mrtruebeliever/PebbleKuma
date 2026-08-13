@@ -13,3 +13,7 @@ bool monitor_detail_is_shown(void);
 
 // Destroys the reusable detail window. Call once at app exit.
 void monitor_detail_destroy(void);
+
+// Raw touch, forwarded from the app-wide subscription while this window is on top.
+bool monitor_detail_is_top(void);
+void monitor_detail_handle_touch(const TouchEvent *event);

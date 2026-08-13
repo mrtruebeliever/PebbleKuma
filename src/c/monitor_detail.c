@@ -1,4 +1,5 @@
 #include "monitor_detail.h"
+#include "touch_nav.h"
 #include "data.h"
 #include "config.h"
 #include "i18n.h"
@@ -344,6 +345,24 @@ static void click_config(void *context) {
   window_single_click_subscribe(BUTTON_ID_DOWN, next_card);
 }
 
+// --- Touch -------------------------------------------------------------------
+//
+// The card fills the screen and never scrolls, so the flicks page between
+// monitors exactly as the buttons do, and a rightward swipe goes back.
+
+bool monitor_detail_is_top(void) {
+  return s_window && window_stack_get_top_window() == s_window;
+}
+
+void monitor_detail_handle_touch(const TouchEvent *event) {
+  switch (touch_nav_feed(NULL, event, NULL)) {
+    case TOUCH_NAV_SWIPE_UP:   next_card(NULL, NULL); break;
+    case TOUCH_NAV_SWIPE_DOWN: prev_card(NULL, NULL); break;
+    case TOUCH_NAV_BACK:       window_stack_pop(true); break;
+    default: break;
+  }
+}
+
 // --- Window ------------------------------------------------------------------
 
 static void window_load(Window *window) {
@@ -410,6 +429,7 @@ void monitor_detail_push(int position) {
   if (!s_window) {
     s_window = window_create();
     window_set_click_config_provider(s_window, click_config);
+    window_set_touch_bridge_disabled(s_window, true);
     window_set_window_handlers(s_window, (WindowHandlers){
       .load = window_load,
       .unload = window_unload,

@@ -21,6 +21,10 @@ cards, and a `#5cdd8b` accent with the Uptime Kuma bear as the app icon.
   badge with the 24h uptime %, current ping with min/avg/max, type, last-checked
   time, the last message (on problems), and a heartbeat bar graph behind an HR
   icon. **Up/down pages between cards** in the current sort order.
+- **Touch** (Pebble Time 2) — drag the list to scroll it (it glides on after you
+  let go), tap a monitor to open its card, flick up or down on a card to page
+  between monitors, and swipe left-to-right to go back to the list (or out of
+  the app, from the list itself).
 - **Animated** — the uptime % counts up and the heartbeat bars sweep in
   left-to-right, both on entry and when paging between cards.
 - **Sorting** — by page order, name, or status (problems first: down → pending →

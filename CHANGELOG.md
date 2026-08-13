@@ -4,6 +4,21 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-08-13
+
+### Added
+- **Touch navigation on the Pebble Time 2.** The monitor list scrolls with your
+  finger and keeps gliding when you let go, a tap opens the monitor you touched,
+  and on the detail card a vertical flick pages between monitors. A left-to-right
+  swipe goes back, and from the monitor list it leaves the app, as BACK does.
+
+### Changed
+- **Reverted the 1.1.3 opt-in into the system touch bridge.** On firmware 4.33.1
+  `app_touch_navigation_enable(true)` faults inside firmware on the first touch
+  and kills the app. Touch is now handled from the raw touch stream inside the
+  app (`src/c/touch_nav.c`). Reported as
+  [PebbleOS#1865](https://github.com/coredevices/PebbleOS/issues/1865).
+
 ## [1.1.6] - 2026-08-13
 
 ### Added

@@ -9,3 +9,7 @@ void monitor_list_reload(void);
 
 // Destroys the root window. Call once at app exit.
 void monitor_list_destroy(void);
+
+// Raw touch, forwarded from the app-wide subscription while this window is on top.
+bool monitor_list_is_top(void);
+void monitor_list_handle_touch(const TouchEvent *event);
