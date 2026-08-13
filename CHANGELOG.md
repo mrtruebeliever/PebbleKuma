@@ -4,6 +4,15 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.5] - 2026-08-13
+
+### Changed
+- **Scaled the list back down** — the 1.1.3 uptime-percentage bump grew each
+  monitor row to 48px, which meant one fewer row fit on screen. The
+  percentage is now bold GOTHIC_14 (was GOTHIC_18_BOLD) instead of a bigger
+  font: same 44px row as before, and bold black-on-grey still makes the
+  number stand out from the status word next to it.
+
 ## [1.1.4] - 2026-08-13
 
 ### Changed

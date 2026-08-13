@@ -86,9 +86,6 @@ static uint16_t get_num_rows(MenuLayer *ml, uint16_t section, void *ctx) {
 }
 
 static int16_t get_cell_height(MenuLayer *ml, MenuIndex *ci, void *ctx) {
-  // Monitor rows get a few extra pixels: the uptime percentage draws at
-  // GOTHIC_18_BOLD (matching the detail screen's cloud) instead of GOTHIC_14.
-  if (ci->row > 0 && data_load_state() == LOAD_OK && data_monitor_count() > 0) return 48;
   return 44;
 }
 
@@ -138,9 +135,10 @@ static void draw_status_row(GContext *ctx, const Layer *cell) {
 }
 
 // Draws one monitor row (by display position): status dot + name + uptime.
-// The uptime percentage draws separately from the status word, at GOTHIC_18_BOLD
-// — the same size the detail screen's uptime cloud uses — since it's the number
-// people open this app to check.
+// The uptime percentage draws separately from the status word, bold, so it
+// stands out as the number people open this app to check — but at the same
+// GOTHIC_14 size as the status word (not GOTHIC_18_BOLD) so the row stays
+// 44px tall and one more monitor fits on screen.
 static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
   Monitor *m = data_monitor_at(pos);
   if (!m) { return; }
@@ -154,17 +152,17 @@ static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
 
   graphics_context_set_text_color(ctx, GColorBlack);
   graphics_draw_text(ctx, m->name, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(30, 0, b.size.w - 36, 26),
+                     GRect(30, 0, b.size.w - 36, 28),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   GFont f14  = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-  GFont f18b = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+  GFont f14b = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
   const char *status = status_label(m->status);
   GSize sw = graphics_text_layout_get_content_size(status, f14,
                  GRect(0, 0, b.size.w - 36, 16), GTextOverflowModeFill, GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, sub_c);
-  graphics_draw_text(ctx, status, f14, GRect(30, 30, b.size.w - 36, 16),
+  graphics_draw_text(ctx, status, f14, GRect(30, 28, b.size.w - 36, 16),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
   if (m->uptime_x100 != UPTIME_UNKNOWN) {
@@ -173,7 +171,7 @@ static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
     int16_t px = 30 + sw.w + 8;
     int16_t pw = b.size.w - 36 - sw.w - 8;
     if (pw > 0) {
-      graphics_draw_text(ctx, pct, f18b, GRect(px, 25, pw, 22),
+      graphics_draw_text(ctx, pct, f14b, GRect(px, 28, pw, 16),
                          GTextOverflowModeFill, GTextAlignmentLeft, NULL);
     }
   }
