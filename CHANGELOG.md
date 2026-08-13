@@ -4,6 +4,18 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.6] - 2026-08-13
+
+### Added
+- **Branded header bar**, replacing the plain white system status bar: accent
+  fill, a small bear icon, "PebbleKuma", and the clock — same look PebbleDoist
+  uses for its top bar.
+
+### Changed
+- **Monitor rows are more compact** (40px, was 44px) so **4 monitors fit on
+  screen** at once instead of 3. The header bar keeps the same height the
+  system status bar used, so it doesn't cost any of that extra room.
+
 ## [1.1.5] - 2026-08-13
 
 ### Changed

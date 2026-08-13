@@ -1,7 +1,7 @@
 {
   "name": "pebblekuma",
   "author": "mrtruebeliever",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "license": "MIT",
   "keywords": ["pebble-app"],
   "private": true,
@@ -53,6 +53,7 @@
           "file": "images/icon_bear.png",
           "menuIcon": true
         },
+        { "type": "png", "name": "IMG_HEADER_ICON", "file": "images/header_icon.png" },
         { "type": "raw", "name": "IMG_UP",      "file": "icons/ic_up.pdc" },
         { "type": "raw", "name": "IMG_DOWN",    "file": "icons/ic_down.pdc" },
         { "type": "raw", "name": "IMG_PENDING", "file": "icons/ic_pending.pdc" },

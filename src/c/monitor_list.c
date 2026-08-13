@@ -4,9 +4,49 @@
 #include "config.h"
 #include "i18n.h"
 
-static Window         *s_window = NULL;
-static MenuLayer      *s_menu = NULL;
-static StatusBarLayer *s_status_bar = NULL;
+// Branded header bar (replaces the plain system StatusBarLayer): accent fill,
+// small bear icon, app name, and the clock — same PebbleDoist-style treatment,
+// kept at the same height the system bar used so it costs nothing extra
+// against the row budget below.
+#define HEADER_H 20
+
+static Window   *s_window = NULL;
+static MenuLayer *s_menu = NULL;
+static Layer    *s_header = NULL;
+static GBitmap  *s_header_icon = NULL;
+
+static void header_update(Layer *layer, GContext *ctx) {
+  GRect b = layer_get_bounds(layer);
+  graphics_context_set_fill_color(ctx, config_accent());
+  graphics_fill_rect(ctx, b, 0, GCornerNone);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, GPoint(0, b.size.h - 1), GPoint(b.size.w, b.size.h - 1));
+
+  GFont f14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+  int name_x = 4;
+  if (s_header_icon) {
+    GRect ib = gbitmap_get_bounds(s_header_icon);
+    int iy = (b.size.h - ib.size.h) / 2;
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, s_header_icon, GRect(4, iy, ib.size.w, ib.size.h));
+    name_x = 4 + ib.size.w + 4;
+  }
+
+  char time_buf[16];
+  clock_copy_time_string(time_buf, sizeof(time_buf));
+  const int time_w = clock_is_24h_style() ? 50 : 70;
+  int time_left = b.size.w - 4 - time_w;
+  graphics_context_set_text_color(ctx, GColorBlack);
+  graphics_draw_text(ctx, time_buf, f14, GRect(time_left, 2, time_w, 16),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
+
+  graphics_draw_text(ctx, "PebbleKuma", f14, GRect(name_x, 2, time_left - name_x - 4, 16),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+}
+
+static void header_tick(struct tm *tick_time, TimeUnits units_changed) {
+  if (s_header) { layer_mark_dirty(s_header); }
+}
 
 // Number of body rows below the page-selector row (row 0).
 static int body_rows(void) {
@@ -85,8 +125,12 @@ static uint16_t get_num_rows(MenuLayer *ml, uint16_t section, void *ctx) {
   return 1 + body_rows();
 }
 
+// Monitor rows are 40px (was 44) so 4 fit on screen under the page-selector
+// row instead of 3; the page-selector row itself keeps its original height,
+// since it also carries the sort/page-switch ActionMenu entry point.
 static int16_t get_cell_height(MenuLayer *ml, MenuIndex *ci, void *ctx) {
-  return 44;
+  if (ci->row == 0) return 44;
+  return 40;
 }
 
 // Draws the page-selector row (row 0).
@@ -126,11 +170,11 @@ static void draw_status_row(GContext *ctx, const Layer *cell) {
   }
   graphics_context_set_text_color(ctx, GColorBlack);
   graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(8, 2, b.size.w - 12, 28),
+                     GRect(8, 0, b.size.w - 12, 24),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   graphics_context_set_text_color(ctx, hl ? GColorBlack : GColorDarkGray);
   graphics_draw_text(ctx, sub, fonts_get_system_font(FONT_KEY_GOTHIC_14),
-                     GRect(8, 26, b.size.w - 12, 16),
+                     GRect(8, 23, b.size.w - 12, 16),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 }
 
@@ -138,7 +182,7 @@ static void draw_status_row(GContext *ctx, const Layer *cell) {
 // The uptime percentage draws separately from the status word, bold, so it
 // stands out as the number people open this app to check — but at the same
 // GOTHIC_14 size as the status word (not GOTHIC_18_BOLD) so the row stays
-// 44px tall and one more monitor fits on screen.
+// compact (40px tall, 4 fit on screen).
 static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
   Monitor *m = data_monitor_at(pos);
   if (!m) { return; }
@@ -152,7 +196,7 @@ static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
 
   graphics_context_set_text_color(ctx, GColorBlack);
   graphics_draw_text(ctx, m->name, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(30, 0, b.size.w - 36, 28),
+                     GRect(30, 0, b.size.w - 36, 24),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   GFont f14  = fonts_get_system_font(FONT_KEY_GOTHIC_14);
@@ -162,7 +206,7 @@ static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
                  GRect(0, 0, b.size.w - 36, 16), GTextOverflowModeFill, GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, sub_c);
-  graphics_draw_text(ctx, status, f14, GRect(30, 28, b.size.w - 36, 16),
+  graphics_draw_text(ctx, status, f14, GRect(30, 23, b.size.w - 36, 16),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
   if (m->uptime_x100 != UPTIME_UNKNOWN) {
@@ -171,7 +215,7 @@ static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
     int16_t px = 30 + sw.w + 8;
     int16_t pw = b.size.w - 36 - sw.w - 8;
     if (pw > 0) {
-      graphics_draw_text(ctx, pct, f14b, GRect(px, 28, pw, 16),
+      graphics_draw_text(ctx, pct, f14b, GRect(px, 23, pw, 16),
                          GTextOverflowModeFill, GTextAlignmentLeft, NULL);
     }
   }
@@ -214,12 +258,13 @@ static void window_load(Window *window) {
   Layer *root = window_get_root_layer(window);
   GRect b = layer_get_bounds(root);
 
-  s_status_bar = status_bar_layer_create();
-  status_bar_layer_set_colors(s_status_bar, GColorWhite, GColorBlack);
-  status_bar_layer_set_separator_mode(s_status_bar, StatusBarLayerSeparatorModeDotted);
-  layer_add_child(root, status_bar_layer_get_layer(s_status_bar));
+  s_header_icon = gbitmap_create_with_resource(RESOURCE_ID_IMG_HEADER_ICON);
+  s_header = layer_create(GRect(0, 0, b.size.w, HEADER_H));
+  layer_set_update_proc(s_header, header_update);
+  layer_add_child(root, s_header);
+  tick_timer_service_subscribe(MINUTE_UNIT, header_tick);
 
-  int top = STATUS_BAR_LAYER_HEIGHT;
+  int top = HEADER_H;
   s_menu = menu_layer_create(GRect(0, top, b.size.w, b.size.h - top));
   menu_layer_set_callbacks(s_menu, NULL, (MenuLayerCallbacks){
     .get_num_rows = get_num_rows,
@@ -237,8 +282,11 @@ static void window_load(Window *window) {
 static void window_unload(Window *window) {
   menu_layer_destroy(s_menu);
   s_menu = NULL;
-  status_bar_layer_destroy(s_status_bar);
-  s_status_bar = NULL;
+  tick_timer_service_unsubscribe();
+  layer_destroy(s_header);
+  s_header = NULL;
+  gbitmap_destroy(s_header_icon);
+  s_header_icon = NULL;
 }
 
 Window *monitor_list_window(void) {
