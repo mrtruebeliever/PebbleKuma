@@ -4,6 +4,14 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.4] - 2026-08-13
+
+### Changed
+- **Bigger text on the monitor detail card** — the ping, type/last-checked and
+  error-message lines are now GOTHIC_18 (were GOTHIC_14), and the ping value
+  is GOTHIC_18_BOLD (was GOTHIC_18), matching the punchier feel of the list
+  view's uptime number.
+
 ## [1.1.3] - 2026-08-13
 
 ### Changed
