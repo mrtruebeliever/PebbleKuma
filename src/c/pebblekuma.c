@@ -29,6 +29,7 @@ static void outbox_failed(DictionaryIterator *iter, AppMessageResult reason,
 }
 
 static void init(void) {
+  app_touch_navigation_enable(true);   // opt in to system touch nav on the menu
   config_load();
   data_set_stall_callback(on_data_changed);
   data_set_load_state(LOAD_LOADING);

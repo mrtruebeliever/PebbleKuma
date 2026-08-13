@@ -4,6 +4,15 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] - 2026-08-13
+
+### Changed
+- **Bigger uptime percentage** in the monitor list — it now draws separately
+  from the status word at a larger, bolder size, matching the detail
+  screen's uptime cloud.
+- Opts into the watch's own touch navigation (Pebble SDK 4.33) on the
+  monitor list.
+
 ## [1.1.2] - 2026-07-16
 
 ### Changed
