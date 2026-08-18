@@ -77,7 +77,9 @@ src/pkjs/i18n.js       per-language Clay settings-form builder
 resources/icons/       built status icons (.pdc) + cloud + HR pulse
                        (.svg files are the design sources, not build inputs)
 resources/images/      bear menu icon (25x25)
-marketing/             app-store icons (80x80, 144x144)
+store/                 appstore listing: DESCRIPTION.md, icons (80/144),
+                       screenshots/, demo GIF
+marketing/             the scripts that record and assemble the demo GIF
 ```
 
 ## Documentation

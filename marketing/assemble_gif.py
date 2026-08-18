@@ -3,14 +3,14 @@ Assemble animated GIF from raw QEMU screendump PPM frames.
 - Collapses runs of identical/near-identical frames into one frame with
   accumulated duration (capped at MAX_STATIC_MS).
 - Keeps animation frames at FRAME_MS each.
-- Output: marketing/pebblekuma_demo.gif
+- Output: store/pebblekuma-demo.gif
 """
 import os, sys
 from PIL import Image
 import numpy as np
 
 IN_DIR  = "/tmp/gif_anim_frames"
-OUT_GIF = os.path.join(os.path.dirname(__file__), "pebblekuma_demo.gif")
+OUT_GIF = os.path.join(os.path.dirname(__file__), "..", "store", "pebblekuma-demo.gif")
 
 FRAME_MS      = 80    # display time for each animation frame
 MAX_STATIC_MS = 1800  # cap on collapsed static pauses

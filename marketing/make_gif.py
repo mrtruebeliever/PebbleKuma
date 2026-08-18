@@ -3,7 +3,7 @@ from PIL import Image
 import os
 
 FRAMES_DIR = os.path.join(os.path.dirname(__file__), "gif_frames")
-OUT = os.path.join(os.path.dirname(__file__), "pebblekuma_demo.gif")
+OUT = os.path.join(os.path.dirname(__file__), "..", "store", "pebblekuma-demo.gif")
 
 # Ordered frames with per-frame display duration in milliseconds.
 FRAMES = [
