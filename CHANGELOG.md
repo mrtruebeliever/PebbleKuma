@@ -18,7 +18,8 @@ adheres to [Semantic Versioning](https://semver.org/).
   page stood when the app closed: "2 DOWN · 14:06", "1 PENDING · 14:06" or
   "12/12 UP · 14:06". An offline launch leaves the previous line in place.
 - **Pebble Round 2 (`gabbro`) and Pebble 2 Duo (`flint`).** On the round screen
-  the header is just the centred clock, the rows pull in from the sides, and the
+  the header is just the centred clock, the selected row runs out to the bezel
+  while the rows slide along the curved edge as the list scrolls, and the
   monitor card sits in a frame below the bezel with the status icon beside its
   label, the card count on the type line, and a narrower heartbeat strip. On
   black-and-white the highlight is black with white text, the card stays white,

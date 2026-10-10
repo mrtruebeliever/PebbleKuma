@@ -14,9 +14,9 @@
 // bezel.
 #define HEADER_H PBL_IF_ROUND_ELSE(30, 20)
 
-// Rows are pulled in from the sides on a round screen, where only the focused
-// row in the middle has the full width.
-#define ROW_INSET PBL_IF_ROUND_ELSE(22, 0)
+// Inset of a row on the screen's middle line -- the focused one, since round
+// lists keep the selection centred.
+#define FOCUSED_ROW_INSET PBL_IF_ROUND_ELSE(6, 0)
 
 // The row names: 24 bold, or 18 on the narrow 144px screen so they are not cut
 // off after a few letters -- that is the size at the watch's default text size
@@ -188,10 +188,25 @@ static GColor highlight_bg(void) {
   return PBL_IF_COLOR_ELSE(config_accent(), GColorBlack);
 }
 
-// The row's usable area: the cell, less the round inset.
+// The row's usable area. On a round screen it is inset to the circle's width at
+// the row's current height on screen, so the rows slide along the edge as the
+// list scrolls, like the system launcher; the highlight still runs full width.
 static GRect row_area(const Layer *cell) {
   GRect b = layer_get_bounds(cell);
-  return GRect(ROW_INSET, 0, b.size.w - 2 * ROW_INSET, b.size.h);
+#if defined(PBL_ROUND)
+  GRect s = layer_convert_rect_to_screen(cell, b);
+  int32_t r = PBL_DISPLAY_WIDTH / 2;
+  int32_t dy = s.origin.y + s.size.h / 2 - r;
+  if (dy < 0) dy = -dy;
+  if (dy > r) dy = r;
+  int32_t half = 0;
+  while ((half + 1) * (half + 1) + dy * dy <= r * r) half++;   // isqrt, a few dozen steps
+  int16_t inset = (int16_t)(r - half + FOCUSED_ROW_INSET);
+  if (inset > r / 2) inset = r / 2;
+  b.origin.x += inset;
+  b.size.w -= 2 * inset;
+#endif
+  return b;
 }
 
 // Draws the page-selector row (row 0).
