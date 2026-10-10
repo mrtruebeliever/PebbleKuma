@@ -32,6 +32,12 @@ FEATURES
 • Touchscreen on Pebble Time 2: drag the list to scroll, tap a monitor to open
   its card, flick up or down to page between monitors, swipe right to go back.
   The buttons do everything the touchscreen does.
+• The page's status in the app list ("2 DOWN · 14:06"), so you can check
+  without opening the app.
+• On the Pebble Time 2 the colour backlight turns red while something is down
+  and amber while something is pending.
+• Monitor names follow your watch's text size.
+• Also built for the Pebble Round 2 and the black-and-white Pebble 2 Duo.
 • Animated where it helps: the uptime percentage counts up and the heartbeat
   bars sweep in, on entry and when paging.
 • Clear empty states, so "not configured yet" never looks like "everything is

@@ -1,4 +1,5 @@
 #include "monitor_detail.h"
+#include <string.h>
 #include "touch_nav.h"
 #include "data.h"
 #include "config.h"
@@ -7,7 +8,48 @@
 // Card layers (cards-example pattern): a short fixed status band holding the
 // status icon, and a sliding content area. On paging, the content text and the
 // band icon slide out, the data swaps, and they slide back in.
+// Card geometry per screen. The card is drawn for the 200px rectangle; on a
+// round screen it sits in a 200px-wide frame pulled down off the top bezel
+// (CARD_TOP), and the 144px screen gets smaller fonts and tighter rows.
+#if PBL_DISPLAY_WIDTH < 180
+#define COMPACT 1
+#define BAND_H      28
+#define LABEL_FONT  FONT_KEY_GOTHIC_18_BOLD
+#define NAME_FONT   FONT_KEY_GOTHIC_18_BOLD
+#define NAME_H      22
+#define INFO_FONT   FONT_KEY_GOTHIC_14       // ping, type, message
+#define INFO_LINE   16
+#define CLOUD_Y     24
+#define TYPE_Y      62
+#define MSG_Y       78
+#define MSG_H       34
+#define BARS_H      20
+#define MARGIN      4
+#else
+#define COMPACT 0
 #define BAND_H      34
+#define LABEL_FONT  FONT_KEY_GOTHIC_24_BOLD
+#define NAME_FONT   FONT_KEY_GOTHIC_24_BOLD
+#define NAME_H      30
+#define INFO_FONT   FONT_KEY_GOTHIC_18
+#define INFO_LINE   22
+#define CLOUD_Y     40
+// Round: one step up, so a two-line message clears the heartbeat strip,
+// which sits higher where the circle narrows.
+#define TYPE_Y      PBL_IF_ROUND_ELSE(86, 94)
+#define MSG_Y       PBL_IF_ROUND_ELSE(106, 118)
+#define MSG_H       40
+#define BARS_H      26
+#define MARGIN      6
+#endif
+
+#if defined(PBL_ROUND)
+#define CARD_TOP    30
+#define CARD_BOTTOM 14
+// The bottom of the circle is narrow: the heartbeat strip (pulse icon + bars)
+// keeps to this width, centred.
+#define BARS_STRIP_W 130
+#endif
 #define SCROLL_OUT  22
 #define SCROLL_IN   10
 #define SCROLL_MS  150
@@ -129,10 +171,28 @@ static GDrawCommandImage *icon_for(uint8_t status) {
 
 // --- Fixed status band -------------------------------------------------------
 
-// Current card's pastel background (neutral when there's no monitor).
+// Current card's pastel background (neutral when there's no monitor). On
+// black-and-white the pastels would all dither, so the card stays white and the
+// status is carried by the icon and the label.
 static GColor card_bg(void) {
+#if defined(PBL_BW)
+  return GColorWhite;
+#else
   Monitor *m = data_monitor_at(s_pos);
   return m ? status_bg_color(m->status) : GColorLightGray;
+#endif
+}
+
+// A heartbeat bar on its black backing: the status colour, or on
+// black-and-white solid white for up and a dither for anything else.
+static GColor beat_color(uint8_t status) {
+  return PBL_IF_COLOR_ELSE(status_color(status),
+                           status == STATUS_UP ? GColorWhite : GColorLightGray);
+}
+
+// The status icon's colour: its status colour, or the card's ink.
+static GColor icon_color(uint8_t status) {
+  return PBL_IF_COLOR_ELSE(status_color(status), text_on(card_bg()));
 }
 
 static void band_update(Layer *layer, GContext *ctx) {
@@ -148,10 +208,13 @@ static void band_update(Layer *layer, GContext *ctx) {
 
   graphics_context_set_text_color(ctx, text_on(bg));
   graphics_draw_text(ctx, status_label(m->status),
-                     fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                     fonts_get_system_font(LABEL_FONT),
                      GRect(0, 2, w, 28), GTextOverflowModeFill,
                      GTextAlignmentCenter, NULL);
 
+#if defined(PBL_ROUND)
+  return;   // no corner for the count up here; it joins the type line instead
+#endif
   char count[24];
   snprintf(count, sizeof(count), "%d/%d", s_pos + 1, data_monitor_count());
   graphics_draw_text(ctx, count, fonts_get_system_font(FONT_KEY_GOTHIC_14),
@@ -166,9 +229,19 @@ static void icon_update(Layer *layer, GContext *ctx) {
   if (!m) { return; }
   GDrawCommandImage *img = icon_for(m->status);
   if (!img) { return; }
-  recolor(img, status_color(m->status), GColorClear);  // the status pop of color
+  recolor(img, icon_color(m->status), GColorClear);  // the status pop of color
   GSize sz = gdraw_command_image_get_bounds_size(img);
-  gdraw_command_image_draw(ctx, img, GPoint(0, (BAND_H - sz.h) / 2));
+  int16_t x = 0;
+#if defined(PBL_ROUND)
+  // The band's left end is cut off by the bezel: the icon sits just left of the
+  // centred label instead. The layer spans the band for this.
+  GRect b = layer_get_bounds(layer);
+  int16_t label_w = graphics_text_layout_get_content_size(
+      status_label(m->status), fonts_get_system_font(LABEL_FONT), GRect(0, 0, b.size.w, 28),
+      GTextOverflowModeFill, GTextAlignmentLeft).w;
+  x = b.size.w / 2 - label_w / 2 - sz.w - 4;
+#endif
+  gdraw_command_image_draw(ctx, img, GPoint(x, (BAND_H - sz.h) / 2));
 }
 
 // --- Sliding content ---------------------------------------------------------
@@ -191,7 +264,8 @@ static void draw_uptime_cloud(GContext *ctx, GPoint origin) {
     snprintf(p, sizeof(p), "%d.%d%%", s_disp_uptime / 100, (s_disp_uptime % 100) / 10);
   }
   graphics_context_set_text_color(ctx, ink);
-  graphics_draw_text(ctx, p, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+  graphics_draw_text(ctx, p, fonts_get_system_font(COMPACT ? FONT_KEY_GOTHIC_14_BOLD
+                                                           : FONT_KEY_GOTHIC_18_BOLD),
                      GRect(origin.x, origin.y + sz.h / 2 - 11, sz.w, 22),
                      GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
@@ -203,19 +277,19 @@ static void content_update(Layer *layer, GContext *ctx) {
   Monitor *m = data_monitor_at(s_pos);
   if (!m) { return; }
 
-  GFont f18b = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-  GFont f18 = fonts_get_system_font(FONT_KEY_GOTHIC_18);
+  GFont f18b = fonts_get_system_font(COMPACT ? FONT_KEY_GOTHIC_14_BOLD : FONT_KEY_GOTHIC_18_BOLD);
+  GFont f18 = fonts_get_system_font(INFO_FONT);
   char line[64];
 
   // Name (full width — the status icon now lives in the band).
   graphics_context_set_text_color(ctx, ink);
-  graphics_draw_text(ctx, m->name, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(6, 4, w - 12, 30),
+  graphics_draw_text(ctx, m->name, fonts_get_system_font(NAME_FONT),
+                     GRect(MARGIN, COMPACT ? 0 : 4, w - 2 * MARGIN, NAME_H),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   // Uptime cloud (left) + ping (right).
   GSize cloud = s_img_cloud ? gdraw_command_image_get_bounds_size(s_img_cloud) : GSize(64, 36);
-  draw_uptime_cloud(ctx, GPoint(6, 40));
+  draw_uptime_cloud(ctx, GPoint(MARGIN, CLOUD_Y));
 
   if (m->ping == PING_UNKNOWN) {
     snprintf(line, sizeof(line), "Ping: --");
@@ -224,9 +298,9 @@ static void content_update(Layer *layer, GContext *ctx) {
   } else {
     snprintf(line, sizeof(line), "Ping %d ms", m->ping);
   }
-  int px = 6 + cloud.w + 10;
+  int px = MARGIN + cloud.w + (COMPACT ? 6 : 10);
   graphics_context_set_text_color(ctx, ink);
-  graphics_draw_text(ctx, line, f18b, GRect(px, 40, w - px - 6, 48),
+  graphics_draw_text(ctx, line, f18b, GRect(px, CLOUD_Y, w - px - MARGIN, 2 * INFO_LINE + 4),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
   // Type + last-checked.
@@ -239,8 +313,14 @@ static void content_update(Layer *layer, GContext *ctx) {
   } else {
     line[0] = '\0';
   }
+#if defined(PBL_ROUND)
+  // The band had no room for the card count; it rides along here.
+  size_t used = strlen(line);
+  snprintf(line + used, sizeof(line) - used, "%s%d/%d", used ? " · " : "",
+           s_pos + 1, data_monitor_count());
+#endif
   if (line[0]) {
-    graphics_draw_text(ctx, line, f18, GRect(6, 94, w - 12, 22),
+    graphics_draw_text(ctx, line, f18, GRect(MARGIN, TYPE_Y, w - 2 * MARGIN, INFO_LINE),
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
@@ -250,18 +330,25 @@ static void content_update(Layer *layer, GContext *ctx) {
     // so red-on-melon measured 1.3:1 and cobalt-on-celeste worse -- and this
     // line is the reason a monitor is down, the most important string here.
     graphics_context_set_text_color(ctx, GColorBlack);
-    graphics_draw_text(ctx, m->msg, f18, GRect(6, 118, w - 12, 40),
+    // On a round screen the circle closes in by this row: keep off the edge.
+    const int16_t mx = MARGIN + PBL_IF_ROUND_ELSE(8, 0);
+    graphics_draw_text(ctx, m->msg, f18, GRect(mx, MSG_Y, w - 2 * mx, MSG_H),
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
   // Heartbeat bar graph (oldest .. newest, left -> right), with the HR pulse icon
   // before it. The black backing panel makes every status color pop on the pastel card.
   const int hr_w = 25, hr_h = 24;
-  GRect bars = GRect(6 + hr_w + 4, h - 30, w - 12 - hr_w - 4, 26);
+#if defined(PBL_ROUND)
+  const int strip_x = (w - BARS_STRIP_W) / 2, strip_w = BARS_STRIP_W;
+#else
+  const int strip_x = MARGIN, strip_w = w - 2 * MARGIN;
+#endif
+  GRect bars = GRect(strip_x + hr_w + 4, h - BARS_H - 4, strip_w - hr_w - 4, BARS_H);
   if (s_hr) {
     graphics_context_set_compositing_mode(ctx, GCompOpSet);
     graphics_draw_bitmap_in_rect(ctx, s_hr,
-        GRect(6, bars.origin.y - 2 + (30 - hr_h) / 2, hr_w, hr_h));
+        GRect(strip_x, bars.origin.y - 2 + (BARS_H + 4 - hr_h) / 2, hr_w, hr_h));
   }
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, GRect(bars.origin.x - 2, bars.origin.y - 2,
@@ -276,7 +363,7 @@ static void content_update(Layer *layer, GContext *ctx) {
     if (local > 1000) { local = 1000; }
     int bh = (int)((long)bars.size.h * local / 1000);
     if (bh < 1) { bh = 1; }
-    graphics_context_set_fill_color(ctx, status_color(m->hb[i]));
+    graphics_context_set_fill_color(ctx, beat_color(m->hb[i]));
     graphics_fill_rect(ctx, GRect(bars.origin.x + i * slot,
                                   bars.origin.y + bars.size.h - bh,  // grow from the bottom
                                   slot - 1, bh), 0, GCornerNone);
@@ -368,6 +455,9 @@ void monitor_detail_handle_touch(const TouchEvent *event) {
 static void window_load(Window *window) {
   Layer *root = window_get_root_layer(window);
   GRect b = layer_get_bounds(root);
+#if defined(PBL_ROUND)
+  b = GRect((b.size.w - 200) / 2, CARD_TOP, 200, b.size.h - CARD_TOP - CARD_BOTTOM);
+#endif
 
   s_img_up = gdraw_command_image_create_with_resource(RESOURCE_ID_IMG_UP);
   s_img_down = gdraw_command_image_create_with_resource(RESOURCE_ID_IMG_DOWN);
@@ -376,15 +466,17 @@ static void window_load(Window *window) {
   s_img_cloud = gdraw_command_image_create_with_resource(RESOURCE_ID_IMG_CLOUD);
   s_hr = gbitmap_create_with_resource(RESOURCE_ID_IMG_HR_PULSE);
 
-  s_band_layer = layer_create(GRect(0, 0, b.size.w, BAND_H));
+  s_band_layer = layer_create(GRect(b.origin.x, b.origin.y, b.size.w, BAND_H));
   layer_set_update_proc(s_band_layer, band_update);
   layer_add_child(root, s_band_layer);
 
-  s_icon_layer = layer_create(GRect(6, 0, 30, BAND_H));
+  s_icon_layer = layer_create(PBL_IF_ROUND_ELSE(GRect(b.origin.x, b.origin.y, b.size.w, BAND_H),
+                                                GRect(MARGIN, 0, 30, BAND_H)));
   layer_set_update_proc(s_icon_layer, icon_update);
   layer_add_child(root, s_icon_layer);
 
-  s_content_layer = layer_create(GRect(0, BAND_H, b.size.w, b.size.h - BAND_H));
+  s_content_layer = layer_create(GRect(b.origin.x, b.origin.y + BAND_H, b.size.w,
+                                       b.size.h - BAND_H));
   layer_set_update_proc(s_content_layer, content_update);
   layer_add_child(root, s_content_layer);
 

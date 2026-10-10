@@ -80,3 +80,9 @@ int      data_index_at(int pos);           // raw index of display position
 GColor      status_color(uint8_t status);
 GColor      status_bg_color(uint8_t status);   // soft pastel, for the card background
 const char *status_label(uint8_t status);
+
+// The status mark beside a monitor: a dot in its status colour, or on a
+// black-and-white screen -- where every status colour would land on the same
+// black or dither -- a shape per status (filled = up, cross = down, ring =
+// pending, square = maintenance) in `ink`.
+void        draw_status_mark(GContext *ctx, GPoint center, int radius, uint8_t status, GColor ink);

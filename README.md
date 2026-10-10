@@ -2,7 +2,8 @@
 
 A Pebble Time 2 watchapp that shows your [Uptime Kuma](https://github.com/louislam/uptime-kuma)
 status-page monitors on the wrist. Clean white list, status-colored monitor
-cards, and a `#5cdd8b` accent with the Uptime Kuma bear as the app icon.
+cards, and a `#5cdd8b` accent with the Uptime Kuma bear as the app icon. Also built
+for the Pebble Round 2 (`gabbro`) and the black-and-white Pebble 2 Duo (`flint`).
 
 <p>
   <img src="screenshots/list.png" width="200" alt="Monitor list">
@@ -25,6 +26,14 @@ cards, and a `#5cdd8b` accent with the Uptime Kuma bear as the app icon.
   let go), tap a monitor to open its card, flick up or down on a card to page
   between monitors, and swipe left-to-right to go back to the list (or out of
   the app, from the list itself).
+- **Status in the app list** — Kuma's line in the launcher shows how the active
+  page stood when the app closed: "2 DOWN · 14:06", "1 PENDING · 14:06" or
+  "12/12 UP · 14:06".
+- **Backlight follows the status** (Pebble Time 2) — red while a monitor on the
+  active page is down, amber while one is pending, the watch's own colour
+  otherwise.
+- **Text size** — monitor names follow the watch's text size (Settings →
+  Display → Text size), and the rows grow to match.
 - **Animated** — the uptime % counts up and the heartbeat bars sweep in
   left-to-right, both on entry and when paging between cards.
 - **Sorting** — by page order, name, or status (problems first: down → pending →

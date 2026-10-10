@@ -9,7 +9,35 @@
 // small bear icon, app name, and the clock — same PebbleDoist-style treatment,
 // kept at the same height the system bar used so it costs nothing extra
 // against the row budget below.
-#define HEADER_H 20
+// A round screen's top edge is too short for name, icon and clock: there the
+// header is just the clock, centred, and a little taller so it clears the
+// bezel.
+#define HEADER_H PBL_IF_ROUND_ELSE(30, 20)
+
+// Rows are pulled in from the sides on a round screen, where only the focused
+// row in the middle has the full width.
+#define ROW_INSET PBL_IF_ROUND_ELSE(22, 0)
+
+// The row names: 24 bold, or 18 on the narrow 144px screen so they are not cut
+// off after a few letters -- that is the size at the watch's default text size
+// (Settings → Display; Large on screens 200px+ tall, Medium below). One step
+// smaller or larger follows the setting. Rows grow with the name.
+typedef struct { const char *font; int16_t h; } NameSize;
+static const NameSize NAME_SIZES[] = {
+  { FONT_KEY_GOTHIC_14_BOLD, 16 }, { FONT_KEY_GOTHIC_18_BOLD, 20 },
+  { FONT_KEY_GOTHIC_24_BOLD, 24 }, { FONT_KEY_GOTHIC_28_BOLD, 30 },
+};
+static const NameSize *s_name = &NAME_SIZES[PBL_DISPLAY_WIDTH < 180 ? 1 : 2];
+
+static void pick_name_size(void) {
+  int def = PBL_DISPLAY_HEIGHT >= 200 ? PreferredContentSizeLarge : PreferredContentSizeMedium;
+  int step = (int)preferred_content_size() - def;
+  int i = (PBL_DISPLAY_WIDTH < 180 ? 1 : 2) + (step < -1 ? -1 : (step > 1 ? 1 : step));
+  s_name = &NAME_SIZES[i];
+}
+
+#define ROW_NAME_FONT (s_name->font)
+#define ROW_NAME_H    (s_name->h)
 
 static Window   *s_window = NULL;
 static MenuLayer *s_menu = NULL;
@@ -18,12 +46,21 @@ static GBitmap  *s_header_icon = NULL;
 
 static void header_update(Layer *layer, GContext *ctx) {
   GRect b = layer_get_bounds(layer);
-  graphics_context_set_fill_color(ctx, config_accent());
+  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(config_accent(), GColorWhite));
   graphics_fill_rect(ctx, b, 0, GCornerNone);
   graphics_context_set_stroke_color(ctx, GColorBlack);
   graphics_draw_line(ctx, GPoint(0, b.size.h - 1), GPoint(b.size.w, b.size.h - 1));
 
   GFont f14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+#if defined(PBL_ROUND)
+  char clock_buf[16];
+  clock_copy_time_string(clock_buf, sizeof(clock_buf));
+  graphics_context_set_text_color(ctx, GColorBlack);
+  graphics_draw_text(ctx, clock_buf, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                     GRect(0, b.size.h - 18, b.size.w, 16),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  return;
+#endif
   int name_x = 4;
   if (s_header_icon) {
     GRect ib = gbitmap_get_bounds(s_header_icon);
@@ -35,7 +72,9 @@ static void header_update(Layer *layer, GContext *ctx) {
 
   char time_buf[16];
   clock_copy_time_string(time_buf, sizeof(time_buf));
-  const int time_w = clock_is_24h_style() ? 50 : 70;
+  // Just wide enough for "23:59" / "11:59 PM": on a 144px screen every pixel
+  // the clock does not need goes to the app name.
+  const int time_w = clock_is_24h_style() ? 36 : 56;
   int time_left = b.size.w - 4 - time_w;
   graphics_context_set_text_color(ctx, GColorBlack);
   graphics_draw_text(ctx, time_buf, f14, GRect(time_left, 2, time_w, 16),
@@ -130,37 +169,58 @@ static uint16_t get_num_rows(MenuLayer *ml, uint16_t section, void *ctx) {
 // row instead of 3; the page-selector row itself keeps its original height,
 // since it also carries the sort/page-switch ActionMenu entry point.
 static int16_t get_cell_height(MenuLayer *ml, MenuIndex *ci, void *ctx) {
-  if (ci->row == 0) return 44;
-  return 40;
+  if (ci->row == 0) return ROW_NAME_H + 20;
+  return ROW_NAME_H + 16;
+}
+
+// Text colours on a row. The colour highlight is the light accent, so text
+// stays black on it; black-and-white highlights in black, so text inverts.
+static GColor row_fg(bool hl) {
+  return PBL_IF_COLOR_ELSE(GColorBlack, hl ? GColorWhite : GColorBlack);
+}
+
+static GColor row_sub(bool hl) {
+  return PBL_IF_COLOR_ELSE(hl ? GColorBlack : GColorDarkGray, row_fg(hl));
+}
+
+// The selected row: the accent, or black where the accent would only dither.
+static GColor highlight_bg(void) {
+  return PBL_IF_COLOR_ELSE(config_accent(), GColorBlack);
+}
+
+// The row's usable area: the cell, less the round inset.
+static GRect row_area(const Layer *cell) {
+  GRect b = layer_get_bounds(cell);
+  return GRect(ROW_INSET, 0, b.size.w - 2 * ROW_INSET, b.size.h);
 }
 
 // Draws the page-selector row (row 0).
 static void draw_page_row(GContext *ctx, const Layer *cell) {
-  GRect b = layer_get_bounds(cell);
+  GRect b = row_area(cell);
   bool hl = menu_cell_layer_is_highlighted(cell);
-  GColor title_c = GColorBlack;   // accent is too light to read on the white list
-  GColor sub_c   = hl ? GColorBlack : GColorDarkGray;
+  GColor title_c = row_fg(hl);   // accent is too light to read on the white list
+  GColor sub_c   = row_sub(hl);
 
   const char *page = data_page_count() > 0 ? data_page_name(data_active_page()) : "-";
   char title[PAGE_NAME_LEN + 16];
   snprintf(title, sizeof(title), i18n(STR_PAGE_FMT), page);
 
   graphics_context_set_text_color(ctx, title_c);
-  graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(8, 0, b.size.w - 12, 28),
+  graphics_draw_text(ctx, title, fonts_get_system_font(ROW_NAME_FONT),
+                     GRect(b.origin.x + 8, 0, b.size.w - 12, ROW_NAME_H + 4),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   char sub[48];
   snprintf(sub, sizeof(sub), i18n(STR_MENU_SORT_FMT), i18n(STR_SORT_PAGE + data_sort_by()));
   graphics_context_set_text_color(ctx, sub_c);
   graphics_draw_text(ctx, sub,
                      fonts_get_system_font(FONT_KEY_GOTHIC_14),
-                     GRect(8, 26, b.size.w - 12, 16),
+                     GRect(b.origin.x + 8, ROW_NAME_H + 2, b.size.w - 12, 16),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
 // Draws a status message row (loading / error / empty).
 static void draw_status_row(GContext *ctx, const Layer *cell) {
-  GRect b = layer_get_bounds(cell);
+  GRect b = row_area(cell);
   bool hl = menu_cell_layer_is_highlighted(cell);
   const char *title, *sub;
   switch (data_load_state()) {
@@ -169,13 +229,13 @@ static void draw_status_row(GContext *ctx, const Layer *cell) {
     case LOAD_UNCONFIGURED: title = i18n(STR_UNCONF_T);  sub = i18n(STR_UNCONF_S);  break;
     default:                title = i18n(STR_EMPTY_T);   sub = "";                  break;
   }
-  graphics_context_set_text_color(ctx, GColorBlack);
-  graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(8, 0, b.size.w - 12, 24),
+  graphics_context_set_text_color(ctx, row_fg(hl));
+  graphics_draw_text(ctx, title, fonts_get_system_font(ROW_NAME_FONT),
+                     GRect(b.origin.x + 8, 0, b.size.w - 12, ROW_NAME_H),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  graphics_context_set_text_color(ctx, hl ? GColorBlack : GColorDarkGray);
+  graphics_context_set_text_color(ctx, row_sub(hl));
   graphics_draw_text(ctx, sub, fonts_get_system_font(FONT_KEY_GOTHIC_14),
-                     GRect(8, 23, b.size.w - 12, 16),
+                     GRect(b.origin.x + 8, ROW_NAME_H - 1, b.size.w - 12, 16),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 }
 
@@ -187,17 +247,17 @@ static void draw_status_row(GContext *ctx, const Layer *cell) {
 static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
   Monitor *m = data_monitor_at(pos);
   if (!m) { return; }
-  GRect b = layer_get_bounds(cell);
+  GRect b = row_area(cell);
   bool hl = menu_cell_layer_is_highlighted(cell);
-  GColor sub_c = hl ? GColorBlack : GColorDarkGray;
+  GColor sub_c = row_sub(hl);
+  const int16_t x = b.origin.x + 30;   // text column, right of the mark
 
-  // Status dot at the left.
-  graphics_context_set_fill_color(ctx, status_color(m->status));
-  graphics_fill_circle(ctx, GPoint(16, b.size.h / 2), 6);
+  // Status mark at the left.
+  draw_status_mark(ctx, GPoint(b.origin.x + 16, b.size.h / 2), 6, m->status, row_fg(hl));
 
-  graphics_context_set_text_color(ctx, GColorBlack);
-  graphics_draw_text(ctx, m->name, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(30, 0, b.size.w - 36, 24),
+  graphics_context_set_text_color(ctx, row_fg(hl));
+  graphics_draw_text(ctx, m->name, fonts_get_system_font(ROW_NAME_FONT),
+                     GRect(x, 0, b.size.w - 36, ROW_NAME_H),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   GFont f14  = fonts_get_system_font(FONT_KEY_GOTHIC_14);
@@ -207,16 +267,16 @@ static void draw_monitor_row(GContext *ctx, const Layer *cell, int pos) {
                  GRect(0, 0, b.size.w - 36, 16), GTextOverflowModeFill, GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, sub_c);
-  graphics_draw_text(ctx, status, f14, GRect(30, 23, b.size.w - 36, 16),
+  graphics_draw_text(ctx, status, f14, GRect(x, ROW_NAME_H - 1, b.size.w - 36, 16),
                      GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
   if (m->uptime_x100 != UPTIME_UNKNOWN) {
     char pct[16];
     snprintf(pct, sizeof(pct), "%d.%02d%%", m->uptime_x100 / 100, m->uptime_x100 % 100);
-    int16_t px = 30 + sw.w + 8;
+    int16_t px = x + sw.w + 8;
     int16_t pw = b.size.w - 36 - sw.w - 8;
     if (pw > 0) {
-      graphics_draw_text(ctx, pct, f14b, GRect(px, 23, pw, 16),
+      graphics_draw_text(ctx, pct, f14b, GRect(px, ROW_NAME_H - 1, pw, 16),
                          GTextOverflowModeFill, GTextAlignmentLeft, NULL);
     }
   }
@@ -300,6 +360,7 @@ void monitor_list_handle_touch(const TouchEvent *event) {
 // --- Window ------------------------------------------------------------------
 
 static void window_load(Window *window) {
+  pick_name_size();
   Layer *root = window_get_root_layer(window);
   GRect b = layer_get_bounds(root);
 
@@ -319,7 +380,7 @@ static void window_load(Window *window) {
     .select_long_click = select_long_click,
   });
   menu_layer_set_normal_colors(s_menu, GColorWhite, GColorBlack);
-  menu_layer_set_highlight_colors(s_menu, config_accent(), GColorBlack);
+  menu_layer_set_highlight_colors(s_menu, highlight_bg(), row_fg(true));
   menu_layer_set_click_config_onto_window(s_menu, window);
   layer_add_child(root, menu_layer_get_layer(s_menu));
 
@@ -356,7 +417,7 @@ Window *monitor_list_window(void) {
 
 void monitor_list_reload(void) {
   if (s_menu) {
-    menu_layer_set_highlight_colors(s_menu, config_accent(), GColorBlack);
+    menu_layer_set_highlight_colors(s_menu, highlight_bg(), row_fg(true));
     menu_layer_reload_data(s_menu);
   }
 }

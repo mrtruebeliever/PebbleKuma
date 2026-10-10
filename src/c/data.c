@@ -191,6 +191,35 @@ GColor status_bg_color(uint8_t status) {
   }
 }
 
+void draw_status_mark(GContext *ctx, GPoint center, int radius, uint8_t status, GColor ink) {
+#if defined(PBL_COLOR)
+  (void)ink;
+  graphics_context_set_fill_color(ctx, status_color(status));
+  graphics_fill_circle(ctx, center, radius);
+#else
+  graphics_context_set_fill_color(ctx, ink);
+  graphics_context_set_stroke_color(ctx, ink);
+  graphics_context_set_stroke_width(ctx, 2);
+  int r = radius - 1;
+  switch (status) {
+    case STATUS_UP:
+      graphics_fill_circle(ctx, center, radius);
+      break;
+    case STATUS_DOWN:
+      graphics_draw_line(ctx, GPoint(center.x - r, center.y - r), GPoint(center.x + r, center.y + r));
+      graphics_draw_line(ctx, GPoint(center.x - r, center.y + r), GPoint(center.x + r, center.y - r));
+      break;
+    case STATUS_MAINT:
+      graphics_draw_rect(ctx, GRect(center.x - r, center.y - r, 2 * r + 1, 2 * r + 1));
+      break;
+    default:   // pending, unknown
+      graphics_draw_circle(ctx, center, r);
+      break;
+  }
+  graphics_context_set_stroke_width(ctx, 1);
+#endif
+}
+
 const char *status_label(uint8_t status) {
   switch (status) {
     case STATUS_UP:      return "UP";

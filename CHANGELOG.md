@@ -4,6 +4,33 @@ All notable changes to PebbleKuma are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-11
+
+### Added
+- **Monitor names follow the watch's text size.** At the default size the names
+  are as before (24 bold, 18 on the 144px screen); a smaller or larger text
+  size in the watch settings moves them one step (down to 14, up to 28 bold),
+  and the rows grow to match.
+- **Backlight colour follows the status (Pebble Time 2).** Red while a monitor
+  on the active page is down, amber while one is pending, the watch's own
+  colour otherwise.
+- **Status in the launcher.** Kuma's line in the app list shows how the active
+  page stood when the app closed: "2 DOWN · 14:06", "1 PENDING · 14:06" or
+  "12/12 UP · 14:06". An offline launch leaves the previous line in place.
+- **Pebble Round 2 (`gabbro`) and Pebble 2 Duo (`flint`).** On the round screen
+  the header is just the centred clock, the rows pull in from the sides, and the
+  monitor card sits in a frame below the bezel with the status icon beside its
+  label, the card count on the type line, and a narrower heartbeat strip. On
+  black-and-white the highlight is black with white text, the card stays white,
+  and each status gets its own mark — filled dot up, cross down, ring pending,
+  square maintenance — instead of a colour that would land on the same black.
+  The 144px screen gets smaller names on rows and cards.
+
+### Changed
+- Settings page moved from `pebble-clay` to `@rebble/clay` 1.1.
+- The header clock reserves only the width it needs, so "PebbleKuma" fits on a
+  144px screen.
+
 ## [1.2.0] - 2026-08-13
 
 ### Added
